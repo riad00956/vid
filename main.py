@@ -5,7 +5,7 @@ import time
 from yt_dlp import YoutubeDL
 import urllib.parse
 
-BOT_TOKEN = "8672535540:AAGLCx-9hXmhBA9NY2q46NbbGLF898neEnk"
+BOT_TOKEN = "8672535540:AAHCDw6BHY4XMMbkfG3j3UkS8XoYZdr3QGY"
 PROXY_BRIDGE = "https://prime-xyron-api.paylinkbd774.workers.dev/?url="
 
 bot = telebot.TeleBot(BOT_TOKEN)
