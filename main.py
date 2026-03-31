@@ -1,5 +1,6 @@
 import telebot
 import os
+import json
 from yt_dlp import YoutubeDL
 
 # আপনার তথ্য
@@ -10,15 +11,14 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "👋 হ্যালো! ইউটিউব লিঙ্ক পাঠান, আমি প্রক্সির মাধ্যমে ডাউনলোড করে দিচ্ছি।")
+    bot.reply_to(message, "👋 হ্যালো! আপনার দেওয়া cookie.json ব্যবহার করে আমি এখন ভিডিও ডাউনলোড করতে প্রস্তুত। লিঙ্ক পাঠান!")
 
 @bot.message_handler(func=lambda message: True)
 def handle_video(message):
     url = message.text.strip()
     if "youtube.com" in url or "youtu.be" in url:
-        msg = bot.reply_to(message, "⏳ প্রক্সির মাধ্যমে ভিডিও প্রসেস করছি...")
+        msg = bot.reply_to(message, "⏳ প্রক্সির মাধ্যমে এবং কুকি ব্যবহার করে ভিডিও প্রসেস করছি...")
         
-        # ফাইল নাম নির্ধারণ
         file_path = f"{message.chat.id}.mp4"
 
         # yt-dlp অপশন
@@ -26,21 +26,19 @@ def handle_video(message):
             'format': 'best[ext=mp4]/best',
             'outtmpl': file_path,
             'quiet': True,
-            # এখানে গুরুত্বপূর্ণ পরিবর্তন: প্রক্সি সরাসরি yt-dlp এর ভেতরে সেট করা হয়েছে
             'proxy': PROXY_BRIDGE + url, 
+            'cookiefile': 'cookie.json', # আপনার দেওয়া ফাইলের নাম এখানে ঠিক থাকতে হবে
             'nocheckcertificate': True,
             'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         }
 
         try:
-            # এবার আমরা সরাসরি অরিজিনাল ইউটিউব লিঙ্ক দেব, কিন্তু প্রক্সি অপশন ব্যবহার করব
             with YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
             
-            # টেলিগ্রামে ভিডিও পাঠানো
             if os.path.exists(file_path):
                 with open(file_path, 'rb') as video:
-                    bot.send_video(message.chat.id, video, caption="ডাউনলোড সম্পন্ন! ✅")
+                    bot.send_video(message.chat.id, video, caption="সফলভাবে ডাউনলোড হয়েছে! ✅")
                 os.remove(file_path)
             
             bot.delete_message(message.chat.id, msg.message_id)
