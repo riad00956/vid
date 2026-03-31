@@ -1,6 +1,5 @@
 import telebot
 import os
-import requests
 from yt_dlp import YoutubeDL
 
 # আপনার তথ্য
@@ -11,35 +10,37 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "👋 হ্যালো! আমি আপনার ভিডিও ডাউনলোডার বট।\nএকটি ইউটিউব লিঙ্ক পাঠান, আমি প্রক্সির মাধ্যমে সেটি পাঠিয়ে দিচ্ছি।")
+    bot.reply_to(message, "👋 হ্যালো! ইউটিউব লিঙ্ক পাঠান, আমি প্রক্সির মাধ্যমে ডাউনলোড করে দিচ্ছি।")
 
 @bot.message_handler(func=lambda message: True)
 def handle_video(message):
-    url = message.text
+    url = message.text.strip()
     if "youtube.com" in url or "youtu.be" in url:
         msg = bot.reply_to(message, "⏳ প্রক্সির মাধ্যমে ভিডিও প্রসেস করছি...")
         
-        # প্রক্সি ইউআরএল এবং ফাইল পাথ
-        proxied_url = f"{PROXY_BRIDGE}{url}"
+        # ফাইল নাম নির্ধারণ
         file_path = f"{message.chat.id}.mp4"
 
+        # yt-dlp অপশন
         ydl_opts = {
-            'format': 'best[ext=mp4]/best', # রেন্ডারে mp4 ফরম্যাট সবচেয়ে নিরাপদ
+            'format': 'best[ext=mp4]/best',
             'outtmpl': file_path,
             'quiet': True,
-            'no_warnings': True,
+            # এখানে গুরুত্বপূর্ণ পরিবর্তন: প্রক্সি সরাসরি yt-dlp এর ভেতরে সেট করা হয়েছে
+            'proxy': PROXY_BRIDGE + url, 
+            'nocheckcertificate': True,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         }
 
         try:
+            # এবার আমরা সরাসরি অরিজিনাল ইউটিউব লিঙ্ক দেব, কিন্তু প্রক্সি অপশন ব্যবহার করব
             with YoutubeDL(ydl_opts) as ydl:
-                ydl.download([proxied_url])
+                ydl.download([url])
             
             # টেলিগ্রামে ভিডিও পাঠানো
-            with open(file_path, 'rb') as video:
-                bot.send_video(message.chat.id, video, caption="ডাউনলোড সম্পন্ন! ✅")
-            
-            # রেন্ডারের ডিস্ক স্পেস বাঁচাতে ফাইল ডিলিট
             if os.path.exists(file_path):
+                with open(file_path, 'rb') as video:
+                    bot.send_video(message.chat.id, video, caption="ডাউনলোড সম্পন্ন! ✅")
                 os.remove(file_path)
             
             bot.delete_message(message.chat.id, msg.message_id)
@@ -49,8 +50,7 @@ def handle_video(message):
             if os.path.exists(file_path):
                 os.remove(file_path)
     else:
-        bot.reply_to(message, "দয়া করে শুধুমাত্র ইউটিউব লিঙ্ক দিন।")
+        bot.reply_to(message, "দয়া করে সঠিক ইউটিউব লিঙ্ক দিন।")
 
 if __name__ == "__main__":
-    print("Bot is running on Render...")
     bot.infinity_polling()
